@@ -1,7 +1,6 @@
 	PRESERVE8
 	THUMB   
 	export DFT_ModuleAuCarre
-	export retour
 
 ; ====================== zone de réservation de données,  ======================================
 ;Section RAM (read only) :
@@ -11,8 +10,6 @@
 ;Section RAM (read write):
 	area    maram,data,readwrite
 		
-index dcw 0
-retour dcw 0
 	
 ; ===============================================================================================
 	
@@ -25,30 +22,40 @@ retour dcw 0
 
 DFT_ModuleAuCarre PROC
 	
-	ldr r8,=retour
-	ldr r2,=index
+	push {r4,r5,r6,r7,r8,r9,r10,r11,r12}
 	ldr r3,=TabCos
-	ldr r4,=TabSin
-	ldr r5,[r0];LeSignal
-	ldr r6,[r1];k
-	ldr r7,[r2]
-	mov r10,#0
+	ldr r5,=TabSin
+	ldr r4,[r0];LeSignal
+	mov r2,#0;index
+	mov r7,#0;somme cos
+	mov r11,#0;somme sin et retour
 	
-	cmp r7,#63
-	beq Exit
 Boucle
 	
-	ldrsh r9,[r1,r4,lsl #1]
-	ldrsh r12,[r3,r4,lsl #1]
+	mul r6,r1,r2
+	and r6,#63
 	
-	mul r9,r12
-	add r10,r9
+	ldrsh r8,[r3,r6,lsl #1];cos
+	ldrsh r9,[r5,r6,lsl #1];sin
+	ldrsh r10,[r0,r2,lsl #1];xn
+
+	mul r8,r10;cos*xn
+	add r7,r8;somme cos
 	
-	add r7,#1
-	strh r7,[r2]
+	mul r9,r10;sin*xn
+	add r11,r9;somme sin
+	
+	add r2,#1;incrémentation index
+	
+	
+	cmp r2,#64;comparaison boucle
+	bne Boucle	
 	
 Exit
-	strh r10,[r8]
+	smull r11,r12,r11,r11;carré du sin
+	smlal r11,r12,r7,r7;carré du cos + addition sin cos
+	mov r0,r12
+	pop {r4,r5,r6,r7,r8,r9,r10,r11,r12}
 	bx lr
 	ENDP
 		
